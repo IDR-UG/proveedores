@@ -17,7 +17,6 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.5;min-height:100vh;}
 
-  
 .topbar{background:var(--navy);color:#fff;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--teal);flex-wrap:wrap;gap:12px;}
 .brand{display:flex;align-items:baseline;gap:10px;}
 .brand .mark{font-family:var(--serif);font-size:22px;font-weight:700;}
@@ -261,7 +260,8 @@ textarea{resize:vertical;min-height:68px;}
           <div class="field full" data-field="razonSocial">
             <label>Razón social<span class="req">*</span></label>
             <input type="text" name="razonSocial" placeholder="Ej: Distribuidora del Sur S.A.">
-            <span class="err-msg">Ingrese la razón social (mínimo 3 caracteres).</span>
+            <span class="hint">No se permiten estos caracteres: / \ : * ? " &lt; &gt; |</span>
+            <span class="err-msg" id="razonSocialErr">Ingrese la razón social (mínimo 3 caracteres).</span>
           </div>
           <div class="field full" data-field="servicioPrestado">
             <label>Servicio prestado<span class="req">*</span></label>
@@ -628,6 +628,20 @@ document.querySelector('input[name=cbu]').addEventListener('input', e => {
   e.target.value = digitsOnly(e.target.value).slice(0,22);
 });
 
+/* ── RAZÓN SOCIAL: caracteres no permitidos ── */
+const RS_PROHIBIDOS = /[\/\\:*?"<>|]/;
+function razonSocialError(v) {
+  if (RS_PROHIBIDOS.test(v)) return 'La razón social no puede contener: / \\ : * ? " < > |';
+  if (v.length < 3) return 'Ingrese la razón social (mínimo 3 caracteres).';
+  return '';
+}
+document.querySelector('input[name=razonSocial]').addEventListener('input', e => {
+  // Aviso inmediato solo para caracteres prohibidos; el mínimo de largo se controla al enviar
+  const prohibido = RS_PROHIBIDOS.test(e.target.value);
+  if (prohibido) document.getElementById('razonSocialErr').textContent = razonSocialError(e.target.value);
+  setErr('razonSocial', prohibido);
+});
+
 /* ── MEDIO DE PAGO → habilita datos bancarios ── */
 function bankEnabled() {
   const v = document.getElementById('medioPagoSelect').value;
@@ -760,7 +774,11 @@ function validate(formEl) {
    'codigoPostal','emailAdmin','personaContacto','telefono','banco','cbu','titular',
    'servicioPrestado','localidad','condicionPago','medioPago','tipoCuenta','moneda','numeroCuenta'].forEach(n => setErr(n, false));
 
-  if (g('razonSocial').length < 3) { setErr('razonSocial', true); ok = false; }
+  const rsErr = razonSocialError(g('razonSocial'));
+  if (rsErr) {
+    document.getElementById('razonSocialErr').textContent = rsErr;
+    setErr('razonSocial', true); ok = false;
+  }
   const cn = digitsOnly(g('cuit'));
   if (cn.length !== 11) { setErr('cuit', true); ok = false; }
   // Nota: ya no se bloquea aquí por CUIT duplicado local. La verificación
